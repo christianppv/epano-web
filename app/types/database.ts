@@ -70,7 +70,7 @@ export interface Database {
         Returns: { id: string; name: string; destination: string; status: string; invite_code: string }[];
       };
       join_trip_by_invite_code: {
-        Args: { p_code: string };
+        Args: { invite_code: string; first_name: string };
         Returns: string;
       };
     };
