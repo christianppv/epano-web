@@ -206,13 +206,20 @@ export default function JoinClient({ trip, memberNames, memberCount }: Props) {
     const uid = userId ?? crypto.randomUUID()
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (supabase.rpc as any)('join_trip_by_invite_code', {
+    const { error, status } = await (supabase.rpc as any)('join_trip_by_invite_code', {
       p_code: trip.invite_code,
       p_first_name: trimmed,
       p_user_id: uid,
     })
 
     if (error) {
+      console.error('JOIN ERROR:', JSON.stringify({ error, status, statusType: typeof status }))
+      // 409 = already a member — treat as success
+      if (status === 409 || String(status) === '409' || error?.code === '23505' || error?.message?.toLowerCase().includes('duplicate') || error?.message?.toLowerCase().includes('already')) {
+        setPhase('joined')
+        await loadOptionsAndPolls(uid)
+        return
+      }
       setPhase('join')
       setErrorMsg('Beitreten fehlgeschlagen. Bitte versuche es erneut.')
       return
