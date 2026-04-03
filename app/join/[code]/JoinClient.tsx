@@ -260,6 +260,8 @@ export default function JoinClient({ trip, memberNames, memberCount }: Props) {
       { onConflict: 'poll_id,user_id' }
     )
 
+    if (error) console.error('vote error:', JSON.stringify({ error, userId }))
+
     if (!error) {
       setOptions((prev) =>
         prev.map((o) =>
