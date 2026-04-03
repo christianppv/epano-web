@@ -113,16 +113,11 @@ export default function JoinClient({ trip, memberNames, memberCount }: Props) {
   const [loadingOptions, setLoadingOptions] = useState(false)
   const [votingId, setVotingId] = useState<string | null>(null) // pollOptionId being voted
 
-  // Initialise a stable temp user ID per browser session
+  // Restore existing auth session if available
   useEffect(() => {
-    const stored = sessionStorage.getItem('epano_uid')
-    if (stored) {
-      setUserId(stored)
-    } else {
-      const id = crypto.randomUUID()
-      sessionStorage.setItem('epano_uid', id)
-      setUserId(id)
-    }
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) setUserId(session.user.id)
+    })
   }, [])
 
   const loadOptionsAndPolls = useCallback(
@@ -203,7 +198,23 @@ export default function JoinClient({ trip, memberNames, memberCount }: Props) {
     setPhase('joining')
     setErrorMsg('')
 
-    const uid = userId ?? crypto.randomUUID()
+    // Get or create a real Supabase auth user (anonymous — invisible to the user)
+    let uid = userId
+    if (!uid) {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session?.user) {
+        uid = session.user.id
+      } else {
+        const { data, error: authError } = await supabase.auth.signInAnonymously()
+        if (authError || !data.user) {
+          setPhase('join')
+          setErrorMsg('Beitreten fehlgeschlagen. Bitte versuche es erneut.')
+          return
+        }
+        uid = data.user.id
+      }
+      setUserId(uid)
+    }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error, status } = await (supabase.rpc as any)('join_trip_by_invite_code', {
