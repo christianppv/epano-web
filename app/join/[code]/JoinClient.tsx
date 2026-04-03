@@ -203,9 +203,13 @@ export default function JoinClient({ trip, memberNames, memberCount }: Props) {
     setPhase('joining')
     setErrorMsg('')
 
-    const { error } = await supabase.rpc('join_trip_by_invite_code', {
-      invite_code: trip.invite_code,
-      first_name: trimmed,
+    const uid = userId ?? crypto.randomUUID()
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase.rpc as any)('join_trip_by_invite_code', {
+      p_code: trip.invite_code,
+      p_first_name: trimmed,
+      p_user_id: uid,
     })
 
     if (error) {
@@ -215,7 +219,6 @@ export default function JoinClient({ trip, memberNames, memberCount }: Props) {
     }
 
     // Fire analytics (non-blocking)
-    const uid = userId ?? crypto.randomUUID()
     fetch('/api/analytics', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
